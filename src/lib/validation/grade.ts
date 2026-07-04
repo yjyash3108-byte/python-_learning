@@ -33,9 +33,11 @@ export const loginSchema = z.object({
 export const createPostSchema = z.object({
   content: z
     .string()
-    .min(1, "Write something about your achievement")
+    .min(1, "Write something about your post")
     .max(2000, "Post is too long (max 2000 characters)"),
   category: z.enum([
+    "achievement",
+    "project",
     "sports",
     "science",
     "arts",
@@ -44,8 +46,25 @@ export const createPostSchema = z.object({
     "community",
     "other",
   ]),
-  imageUrls: z.array(z.string().url()).max(4).optional().default([]),
+  imageUrls: z.array(z.string()).max(4).optional().default([]),
+  linkUrl: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^https?:\/\/.+/i.test(v), "Enter a valid project link (https://…)"),
+  hashtags: z.array(z.string().min(1).max(40)).max(10).optional().default([]),
 });
+
+export function parseHashtags(raw: string): string[] {
+  if (!raw.trim()) return [];
+  return [
+    ...new Set(
+      raw
+        .split(/[\s,]+/)
+        .map((t) => t.trim().replace(/^#+/, "").toLowerCase())
+        .filter((t) => t.length > 0 && t.length <= 40)
+    ),
+  ].slice(0, 10);
+}
 
 export type SignUpInput = z.infer<typeof signUpSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

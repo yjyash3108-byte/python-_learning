@@ -1,31 +1,35 @@
-import { MessageSquare } from "lucide-react";
-import { GlassPanel } from "@/components/ui/glass-panel";
+import { MessagesInbox } from "@/components/messages/messages-inbox";
+import { getConversations, getConversationMessages } from "@/lib/data/messages";
 
-export const metadata = {
-  title: "Messages",
+export const metadata = { title: "Messages" };
+
+type PageProps = {
+  searchParams: Promise<{ conversation?: string }>;
 };
 
-export default function MessagesPage() {
+export default async function MessagesPage({ searchParams }: PageProps) {
+  const { conversation: selectedId } = await searchParams;
+  const conversations = await getConversations().catch(() => []);
+  const initialMessages = selectedId
+    ? await getConversationMessages(selectedId).catch(() => [])
+    : [];
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-300/70">
-          3D inbox
+          Direct messages
         </p>
-        <h1 className="text-3xl font-bold text-white text-3d-glow">Messages</h1>
+        <h1 className="text-3xl font-bold text-foreground text-3d-glow">Messages</h1>
+        <p className="text-sm text-muted-foreground">
+          Chat with students you mutually follow. Both must follow each other to message.
+        </p>
       </div>
-      <GlassPanel depth="md" tilt className="p-8">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-200 panel-3d-depth">
-            <MessageSquare className="h-7 w-7" />
-          </div>
-          <h2 className="text-xl font-semibold text-white">Direct messages</h2>
-        </div>
-        <p className="text-sm text-slate-300">
-          Direct messaging will be added in phase 2, with the same moderation
-          pipeline as posts so only connected students can chat.
-        </p>
-      </GlassPanel>
+      <MessagesInbox
+        initialConversations={conversations}
+        initialMessages={initialMessages}
+        selectedConversationId={selectedId ?? conversations[0]?.id ?? null}
+      />
     </div>
   );
 }

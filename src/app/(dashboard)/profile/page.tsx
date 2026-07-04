@@ -1,60 +1,122 @@
-import { getCurrentProfile } from "@/lib/data/profile";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { GlassPanel } from "@/components/ui/glass-panel";
+import { getCurrentProfile, getFollowStatus } from "@/lib/data/profile";
 
-export const metadata = {
-  title: "Profile",
-};
+import { getDashboardStats } from "@/lib/data/dashboard";
+
+import { getSubscriptionStatus } from "@/lib/data/subscription";
+
+import { getMyAchievements } from "@/lib/data/achievements";
+
+import { Badge } from "@/components/ui/badge";
+
+import Link from "next/link";
+
+import { Crown } from "lucide-react";
+
+import { OwnProfileContent } from "@/components/profile/own-profile-content";
+
+
+
+export const metadata = { title: "Profile" };
+
+
 
 export default async function ProfilePage() {
+
   const profile = await getCurrentProfile();
 
   if (!profile) return null;
 
-  const initials = profile.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+
+
+  const [stats, followStatus, subscription, achievements] = await Promise.all([
+
+    getDashboardStats(),
+
+    getFollowStatus(profile.id),
+
+    getSubscriptionStatus(),
+
+    getMyAchievements(),
+
+  ]);
+
+
+
+  const achievementSkills = achievements.flatMap((a) => a.skills_gained ?? []);
+
+
+
+  const followData = followStatus ?? {
+
+    followers: stats?.followers_count ?? 0,
+
+    following: stats?.following_count ?? 0,
+
+    is_following: false,
+
+    is_self: true,
+
+  };
+
+
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-300/70">
-          3D profile
-        </p>
-        <h1 className="text-3xl font-bold text-white text-3d-glow">Your profile</h1>
-      </div>
-      <GlassPanel depth="md" tilt className="p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <Avatar className="h-20 w-20 ring-4 ring-indigo-400/30">
-            <AvatarImage src={profile.profile_picture_url ?? undefined} />
-            <AvatarFallback className="bg-indigo-500/30 text-xl text-indigo-100">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="text-2xl font-semibold text-white">{profile.full_name}</h2>
-            <p className="text-slate-400">
-              Class {profile.grade} · {profile.school_name}
-            </p>
-          </div>
-        </div>
-        <div className="mt-8 space-y-2">
-          <p className="text-sm font-medium text-slate-400">Bio</p>
-          <p className="text-slate-200">
-            {profile.bio || "No bio yet. Tell classmates what you enjoy learning!"}
-          </p>
-        </div>
-        <Badge
-          variant="outline"
-          className="mt-6 border-white/15 bg-white/5 text-slate-300"
-        >
-          Profile editing coming in phase 2
+
+    <div className="space-y-6">
+
+      {subscription?.is_pro ? (
+
+        <Badge className="gap-1 border-amber-400/30 bg-amber-500/15 text-amber-200">
+
+          <Crown className="h-3 w-3" />
+
+          ScholarNet Pro
+
         </Badge>
-      </GlassPanel>
+
+      ) : (
+
+        <Link
+
+          href="/upgrade"
+
+          className="inline-flex items-center gap-2 rounded-full border border-indigo-400/30 bg-indigo-500/10 px-3 py-1 text-sm text-indigo-200 hover:bg-indigo-500/20"
+
+        >
+
+          <Crown className="h-4 w-4" />
+
+          Upgrade to Pro
+
+        </Link>
+
+      )}
+
+      <OwnProfileContent
+
+        profile={profile}
+
+        isPro={subscription?.is_pro ?? false}
+
+        followStatus={{ ...followData, is_self: true }}
+
+        achievementSkills={achievementSkills}
+
+        stats={{
+
+          projects_count: stats?.projects_count ?? 0,
+
+          posts_count: stats?.posts_count ?? 0,
+
+          achievements_count: stats?.achievements_count ?? 0,
+
+        }}
+
+      />
+
     </div>
+
   );
+
 }
+

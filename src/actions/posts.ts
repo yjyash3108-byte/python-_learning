@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getSessionUserId } from "@/lib/auth/session";
-import { createPostForUser } from "@/lib/store";
+import { serverFetch } from "@/lib/api/server-client";
 import { moderateContent } from "@/lib/moderation/moderateContent";
 import { createPostSchema } from "@/lib/validation/grade";
 
@@ -11,17 +10,23 @@ export type PostActionState = {
   success?: string;
 };
 
-/**
- * Creates a post after server-side moderation (in-memory store, no database).
- */
-export async function createPost(
-  _prev: PostActionState,
-  formData: FormData
+export type CreatePostInput = {
+  content: string;
+  category: string;
+  imageUrls?: string[];
+  linkUrl?: string;
+  hashtags?: string[];
+};
+
+export async function createPostData(
+  input: CreatePostInput
 ): Promise<PostActionState> {
   const parsed = createPostSchema.safeParse({
-    content: formData.get("content"),
-    category: formData.get("category"),
-    imageUrls: [],
+    content: input.content,
+    category: input.category,
+    imageUrls: input.imageUrls ?? [],
+    linkUrl: input.linkUrl?.trim() || undefined,
+    hashtags: input.hashtags ?? [],
   });
 
   if (!parsed.success) {
@@ -33,21 +38,31 @@ export async function createPost(
     return { error: moderation.reason };
   }
 
-  const userId = await getSessionUserId();
-  if (!userId) {
-    return { error: "You must be signed in to post." };
-  }
-
-  const result = createPostForUser(userId, {
-    content: parsed.data.content,
-    category: parsed.data.category,
-    imageUrls: parsed.data.imageUrls,
-  });
-
-  if ("error" in result) {
-    return { error: result.error };
+  try {
+    await serverFetch("/api/v1/posts", {
+      method: "POST",
+      body: JSON.stringify({
+        content: parsed.data.content,
+        category: parsed.data.category,
+        image_urls: parsed.data.imageUrls ?? [],
+        link_url: parsed.data.linkUrl || null,
+        hashtags: parsed.data.hashtags ?? [],
+      }),
+    });
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to create post" };
   }
 
   revalidatePath("/feed");
-  return { success: "Achievement shared!" };
+  return { success: "Your post was shared successfully!" };
+}
+
+export async function deletePost(postId: string): Promise<{ error?: string }> {
+  try {
+    await serverFetch(`/api/v1/posts/${postId}`, { method: "DELETE" });
+    revalidatePath("/feed");
+    return {};
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Failed to delete post" };
+  }
 }

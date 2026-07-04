@@ -6,12 +6,9 @@ import { MAX_GRADE, MIN_GRADE } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { FormSelect } from "@/components/ui/form-select";
 
 const initialState: AuthActionState = {};
-
-const selectClassName =
-  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
 export function SignUpForm() {
   const [state, formAction, pending] = useActionState(signUp, initialState);
@@ -43,17 +40,16 @@ export function SignUpForm() {
 
       <div className="space-y-2">
         <Label htmlFor="grade">Class / Grade (required)</Label>
-        <select id="grade" name="grade" required className={cn(selectClassName)}>
-          <option value="">Select your class</option>
-          {Array.from(
+        <FormSelect
+          id="grade"
+          name="grade"
+          required
+          placeholder="Select your class"
+          options={Array.from(
             { length: MAX_GRADE - MIN_GRADE + 1 },
             (_, i) => MIN_GRADE + i
-          ).map((g) => (
-            <option key={g} value={g}>
-              Class {g}
-            </option>
-          ))}
-        </select>
+          ).map((g) => ({ value: String(g), label: `Class ${g}` }))}
+        />
         <p className="text-xs text-muted-foreground">
           Only students in Classes {MIN_GRADE}–{MAX_GRADE} can join.
         </p>

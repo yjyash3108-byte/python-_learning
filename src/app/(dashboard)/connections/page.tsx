@@ -1,36 +1,96 @@
-import { Users } from "lucide-react";
-import { GlassPanel } from "@/components/ui/glass-panel";
+import { FollowBackPanel } from "@/components/connections/follow-back-panel";
 
-export const metadata = {
-  title: "Connections",
-};
+import { ConnectionsSearch } from "@/components/connections/connections-search";
 
-export default function ConnectionsPage() {
+import { SuggestedUsers } from "@/components/connections/suggested-users";
+
+import { getCurrentProfile } from "@/lib/data/profile";
+
+import { getSuggestedUsers } from "@/lib/data/suggested-users";
+
+import { serverFetchOptional } from "@/lib/api/server-client";
+
+import type { UserProfile } from "@/types/models";
+
+
+
+export const metadata = { title: "Connections" };
+
+
+
+export default async function ConnectionsPage() {
+
+  const user = await getCurrentProfile();
+
+  const [following, followers, suggested] = await Promise.all([
+
+    user?.id
+
+      ? (await serverFetchOptional<UserProfile[]>(`/api/v1/following/${user.id}`)) ?? []
+
+      : [],
+
+    user?.id
+
+      ? (await serverFetchOptional<UserProfile[]>(`/api/v1/followers/${user.id}`)) ?? []
+
+      : [],
+
+    getSuggestedUsers(),
+
+  ]);
+
+  const followingIds = following.map((u) => u.id);
+
+  const followerSet = new Set(followers.map((u) => u.id));
+
+  const mutualIds = followingIds.filter((id) => followerSet.has(id));
+
+
+
   return (
+
     <div className="space-y-8">
+
       <div className="space-y-2">
+
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-indigo-300/70">
+
           3D network
+
         </p>
+
         <h1 className="text-3xl font-bold text-white text-3d-glow">Connections</h1>
+
       </div>
-      <GlassPanel depth="md" tilt className="p-8">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/25 text-indigo-200 panel-3d-depth">
-            <Users className="h-7 w-7" />
-          </div>
-          <h2 className="text-xl font-semibold text-white">Friend requests</h2>
-        </div>
-        <p className="text-sm text-slate-300">
-          Mutual-accept friend requests will ship in phase 2. The app currently
-          runs without a database — connections are not persisted yet.
-        </p>
-        <ul className="mt-4 list-inside list-disc space-y-1 text-sm text-slate-400">
-          <li>Students send a request — status: pending</li>
-          <li>Addressee accepts or declines — no one follows without consent</li>
-          <li>Blocked users cannot interact</li>
-        </ul>
-      </GlassPanel>
+
+      <FollowBackPanel followers={followers} followingIds={followingIds} />
+
+      <SuggestedUsers
+
+        initialUsers={suggested}
+
+        initialFollowingIds={followingIds}
+
+        initialMutualIds={mutualIds}
+
+        currentUserId={user?.id}
+
+      />
+
+      <ConnectionsSearch
+
+        initialFollowingIds={followingIds}
+
+        initialMutualIds={mutualIds}
+
+        currentUserId={user?.id}
+
+      />
+
     </div>
+
   );
+
 }
+

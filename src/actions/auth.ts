@@ -1,17 +1,26 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { setSession, clearSession } from "@/lib/auth/session";
-import {
-  authenticateUser,
-  createUser,
-} from "@/lib/store";
+import { clearAccessToken, setAccessToken } from "@/lib/auth/token";
+import { serverFetch } from "@/lib/api/server-client";
 import { loginSchema, signUpSchema } from "@/lib/validation/grade";
 
 export type AuthActionState = {
   error?: string;
   success?: string;
 };
+
+type TokenResponse = { access_token: string; token_type: string };
+
+function safeRedirectPath(raw: FormDataEntryValue | null): string {
+  if (typeof raw !== "string" || !raw.startsWith("/") || raw.startsWith("//")) {
+    return "/feed";
+  }
+  if (raw.startsWith("/login") || raw.startsWith("/signup")) {
+    return "/feed";
+  }
+  return raw;
+}
 
 export async function signUp(
   _prev: AuthActionState,
@@ -30,20 +39,25 @@ export async function signUp(
   }
 
   const { email, password, fullName, grade, schoolName } = parsed.data;
-  const result = createUser({
-    email,
-    password,
-    fullName,
-    grade,
-    schoolName,
-  });
 
-  if ("error" in result) {
-    return { error: result.error };
+  try {
+    const data = await serverFetch<TokenResponse>("/api/v1/auth/signup", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({
+        email,
+        password,
+        full_name: fullName,
+        school_name: schoolName,
+        grade,
+      }),
+    });
+    await setAccessToken(data.access_token);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Signup failed" };
   }
 
-  await setSession(result.id);
-  redirect("/feed");
+  redirect("/onboarding");
 }
 
 export async function signIn(
@@ -59,17 +73,26 @@ export async function signIn(
     return { error: parsed.error.errors[0]?.message ?? "Invalid input" };
   }
 
-  const user = authenticateUser(parsed.data.email, parsed.data.password);
-
-  if (!user) {
-    return { error: "Invalid email or password." };
+  try {
+    const data = await serverFetch<TokenResponse>("/api/v1/auth/login", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify(parsed.data),
+    });
+    await setAccessToken(data.access_token);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Login failed" };
   }
 
-  await setSession(user.id);
-  redirect("/feed");
+  redirect(safeRedirectPath(formData.get("redirect")));
 }
 
 export async function signOut() {
-  await clearSession();
+  try {
+    await serverFetch("/api/v1/auth/logout", { method: "POST" });
+  } catch {
+    // ignore — clear local session regardless
+  }
+  await clearAccessToken();
   redirect("/login");
 }
