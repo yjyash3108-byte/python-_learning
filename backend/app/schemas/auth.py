@@ -84,6 +84,8 @@ class PublicProfileOut(BaseModel):
     profile_picture_url: str | None
     is_verified: bool
     created_at: datetime
+    cover_primary: str | None = None
+    cover_accent: str | None = None
 
     model_config = {"from_attributes": True}
 

@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { GlassPanel } from "@/components/ui/glass-panel";
+import { ProfileCover } from "@/components/profile/profile-cover";
 import { getPublicProfile } from "@/lib/data/public-profile";
 import { publicProfileUrl } from "@/lib/slug";
 import type { Metadata } from "next";
@@ -82,7 +83,12 @@ export default async function PublicPortfolioPage({
 
       <main className="mx-auto max-w-4xl space-y-8 px-4 py-10">
         <GlassPanel depth="lg" static className="overflow-hidden p-0">
-          <div className="profile-cover relative h-36" />
+          <ProfileCover
+            imageUrl={profile.profile_picture_url}
+            coverPrimary={profile.cover_primary}
+            coverAccent={profile.cover_accent}
+            className="h-36"
+          />
           <div className="px-6 pb-8">
             <div className="avatar-ring -mt-14 w-fit rounded-full">
               <Avatar className="h-28 w-28 border-4 border-background">

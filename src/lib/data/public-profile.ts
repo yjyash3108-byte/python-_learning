@@ -47,6 +47,8 @@ export type PublicProfile = {
   profile_picture_url: string | null;
   is_verified: boolean;
   created_at: string;
+  cover_primary?: string | null;
+  cover_accent?: string | null;
   achievements: PublicAchievement[];
   projects: PublicProject[];
   posts: PublicPost[];

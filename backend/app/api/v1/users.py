@@ -23,6 +23,15 @@ from app.services.subscription import user_has_pro
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+def _cover_theme_from_user(user: User) -> tuple[str | None, str | None]:
+    links = user.social_links or {}
+    primary = links.get("profile_cover_primary")
+    accent = links.get("profile_cover_accent")
+    if isinstance(primary, str) and isinstance(accent, str):
+        return primary, accent
+    return None, None
+
+
 def _public_profile_payload(db: Session, user: User) -> PublicProfileFullOut:
     achievements = (
         db.query(Achievement)
@@ -53,8 +62,11 @@ def _public_profile_payload(db: Session, user: User) -> PublicProfileFullOut:
         .all()
     )
     base = PublicProfileOut.model_validate(user)
+    cover_primary, cover_accent = _cover_theme_from_user(user)
     return PublicProfileFullOut(
         **base.model_dump(),
+        cover_primary=cover_primary,
+        cover_accent=cover_accent,
         achievements=achievements,
         projects=projects,
         posts=posts,

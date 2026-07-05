@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GlassPanel } from "@/components/ui/glass-panel";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +8,9 @@ import { FollowButton } from "@/components/profile/follow-button";
 import { MessageUserButton } from "@/components/messages/message-user-button";
 import { FollowStats } from "@/components/profile/follow-stats-bar";
 import { ProfileShareMenu } from "@/components/profile/profile-share-menu";
+import { ProfileAvatarEditor } from "@/components/profile/profile-avatar-editor";
+import { ProfileCover } from "@/components/profile/profile-cover";
+import { parseCoverThemeFromSocialLinks } from "@/lib/profile/cover-theme";
 import { ReportBlockActions } from "@/components/moderation/report-block-actions";
 import { SkillsInterestsSection } from "@/components/profile/skills-interests-section";
 import { Link2 } from "lucide-react";
@@ -63,13 +65,15 @@ export function StudentProfileView({
 }: StudentProfileViewProps) {
   const [followers, setFollowers] = useState(followStatus.followers);
   const [following, setFollowing] = useState(followStatus.following);
+  const [avatarUrl, setAvatarUrl] = useState(profile.profile_picture_url);
+  const savedCover = useMemo(
+    () => parseCoverThemeFromSocialLinks(profile.social_links),
+    [profile.social_links]
+  );
 
-  const initials = profile.full_name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  useEffect(() => {
+    setAvatarUrl(profile.profile_picture_url);
+  }, [profile.profile_picture_url]);
 
   const skills = editableSkills ?? profile.skills ?? [];
   const interests = editableInterests ?? profile.interests ?? [];
@@ -78,16 +82,21 @@ export function StudentProfileView({
   return (
     <div className="space-y-6">
       <GlassPanel depth="lg" static className="overflow-hidden p-0">
-        <div className="profile-cover relative h-36 sm:h-40" />
+        <ProfileCover
+          imageUrl={avatarUrl}
+          coverPrimary={savedCover?.primary}
+          coverAccent={savedCover?.accent}
+        />
         <div className="relative px-5 pb-6 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="avatar-ring -mt-14 w-fit rounded-full sm:-mt-16">
-              <Avatar className="h-24 w-24 border-4 border-background sm:h-28 sm:w-28">
-                <AvatarImage src={profile.profile_picture_url ?? undefined} />
-                <AvatarFallback className="bg-indigo-500/40 text-2xl font-bold text-white">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <ProfileAvatarEditor
+                fullName={profile.full_name}
+                imageUrl={avatarUrl}
+                editable={followStatus.is_self}
+                socialLinks={profile.social_links ?? undefined}
+                onPhotoUpdated={setAvatarUrl}
+              />
             </div>
             {!followStatus.is_self && (
               <div className="flex flex-col items-end gap-2 sm:flex-row">
@@ -132,6 +141,11 @@ export function StudentProfileView({
             Class {profile.grade} · {profile.school_name}
             {profile.city ? ` · ${profile.city}` : ""}
           </p>
+          {followStatus.is_self && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Click your photo to add or change it.
+            </p>
+          )}
           {followStatus.is_self && profile.username && (
             <p className="mt-3 inline-flex max-w-full items-center gap-2 rounded-lg border border-indigo-400/20 bg-indigo-500/10 px-3 py-2 text-sm">
               <Link2 className="h-3.5 w-3.5 shrink-0 text-indigo-400" />

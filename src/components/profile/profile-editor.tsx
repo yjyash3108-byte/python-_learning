@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { ProfileAvatarEditor } from "@/components/profile/profile-avatar-editor";
 import { GlassPanel } from "@/components/ui/glass-panel";
-import { apiUpload } from "@/lib/api/client";
 import { useRouter } from "next/navigation";
 
 interface ProfileEditorProps {
@@ -49,32 +49,20 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
     }
   }
 
-  async function handleAvatar(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLoading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      await apiUpload("/users/me/avatar", fd);
-      router.refresh();
-      setMessage("Photo updated");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <GlassPanel depth="sm" static className="space-y-4 p-6">
       <h2 className="font-semibold">Edit profile</h2>
       {message && <p className="text-sm text-primary">{message}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
-      <div>
-        <Label htmlFor="avatar">Profile picture</Label>
-        <Input id="avatar" type="file" accept="image/*" className="mt-1" onChange={handleAvatar} />
-      </div>
+      <ProfileAvatarEditor
+        fullName={profile.full_name}
+        imageUrl={profile.profile_picture_url}
+        editable
+        className="flex justify-center"
+      />
+      <p className="text-center text-xs text-muted-foreground">
+        JPG or PNG, max 5 MB
+      </p>
       <div>
         <Label htmlFor="bio">Bio</Label>
         <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} className="mt-1" rows={3} />
